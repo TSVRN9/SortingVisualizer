@@ -1,8 +1,4 @@
-/**
- * functions that just make life easier :)
- */
-
-import { VisualArray } from './visualarray';
+//  functions that just make life easier :)
 
 export function generateShuffledArray(size: number) {
     // [1, 2, 3, 4...]

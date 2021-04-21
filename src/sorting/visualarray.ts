@@ -1,5 +1,3 @@
-"use strict";
-
 import * as Util from './util';
 import { generateShuffledArray } from './util';
 
@@ -31,13 +29,9 @@ export interface VisualArray {
 }
 
 /**
- * Represents an array with highlighting and rendering
+ * Current Implementation
  */
-export class VisualArrayImplementation implements VisualArray {
-    theme: HighlightingTheme;
-    delay: number;
-
-    readonly canvas: HTMLCanvasElement;
+export class CanavasVisualArray implements VisualArray {
     readonly context: CanvasRenderingContext2D;
     readonly stats: Stats = new Stats();
 
@@ -47,20 +41,19 @@ export class VisualArrayImplementation implements VisualArray {
     /**
      * @param array - to be copied
      */
-    constructor(array: number[], canvas: HTMLCanvasElement, delay?: number, theme?: HighlightingTheme) {
+    constructor(
+        array: number[], 
+        readonly canvas: HTMLCanvasElement, 
+        public delay: number = 10, 
+        public theme: HighlightingTheme = { DEFAULT: 'white', INDEX: 'aqua', COMPARISON: 'green' }
+        ) {
         this.array = array.slice();
-        
-        this.canvas = canvas;
 
         let context = canvas.getContext('2d');
         if (context == null) {
             throw new Error('Canvas context is null! Is canvas not supported?');
         }
         this.context = context;
-        
-        this.delay = delay ?? 10;
-        
-        this.theme = theme ?? { DEFAULT: 'white', INDEX: 'aqua', COMPARISON: 'green' };
     }
 
     get length() {
@@ -210,7 +203,7 @@ export class VisualArrayImplementation implements VisualArray {
  * For testing algorithms
  */
 export class DummyVisualArray implements VisualArray {
-    array: number[];
+    private array: number[];
 
     constructor(size: number) {
         this.array = generateShuffledArray(size);
@@ -238,7 +231,7 @@ export class DummyVisualArray implements VisualArray {
         return new ComparisonResult(this.array[first] - this.array[second]);
     }
 
-    // dummy methods
+    
     mark(_index: number, _highlighting: string, _temporary?: boolean): VisualArray {
         return this;
     }
@@ -261,15 +254,7 @@ export class DummyVisualArray implements VisualArray {
  * Acts as a seperate array but references a parent
  */
 export class SubVisualArray implements VisualArray {
-    readonly parent: VisualArray;
-    readonly start: number;
-    readonly end: number;
-
-    constructor(parent: VisualArray, start: number, end: number) {
-        this.parent = parent;
-        this.start = start;
-        this.end = end;
-    }
+    constructor(readonly parent: VisualArray, readonly start: number, readonly end: number) {}
 
     get length() {
         return this.end - this.start;
@@ -339,41 +324,29 @@ export interface HighlightingTheme {
  * Immutable object representing the highlighting of an index
  */
 export class HighlightedIndex {
-    readonly index: number;
-    readonly highlighting: string;
-    readonly isTemporary: boolean;
-
-    constructor(index: number, highlighting: string, isTemporary: boolean) {
-        this.index = index;
-        this.highlighting = highlighting;
-        this.isTemporary = isTemporary;
-    }
+    constructor(readonly index: number, readonly highlighting: string, readonly isTemporary: boolean) {}
 }
 
 /**
  * Convenience class that makes everything pretty ✨
  */
 export class ComparisonResult {
-    readonly res;
-
-    constructor(res: number) {
-        this.res = res;
-    }
+    constructor(readonly result: number) {}
 
     // getters because it looks cleaner imo
     get isGreater() {
-        return this.res > 0;
+        return this.result > 0;
     }
     get isGreaterEqual() {
-        return this.res >= 0;
+        return this.result >= 0;
     }
     get isLess() {
-        return this.res < 0;
+        return this.result < 0;
     }
     get isLessEqual() {
-        return this.res <= 0;
+        return this.result <= 0;
     }
     get isEqual() {
-        return this.res === 0;
+        return this.result == 0;
     }
 }

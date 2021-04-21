@@ -84,6 +84,7 @@ const insertionSortDescription: string = oneline(
  Time complexity is O(n^2) and space complexity is O(1)`
 );
 
+// ! does not work LMAO
 const insertionSort: SortingImplementation = async (array) => {
     for (let i = 1; i < array.length; i++) {
         array.move(i, await binarySearch(array, i, 0, i - 1));
@@ -91,6 +92,7 @@ const insertionSort: SortingImplementation = async (array) => {
     return array;
 }
 
+// ! BUGGED
 /**
  * @param min - inclusive
  * @param max - inclusive
@@ -132,6 +134,7 @@ export const AlgorithmList: {[name: string]: SortingAlgorithm} = {
     
 };
 
+// ! Freezes browser :))))
 export namespace Validation {
     const VALIDATION_ERROR_MESSAGE: string = "Array sorted incorrectly";
 
