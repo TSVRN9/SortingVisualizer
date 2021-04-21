@@ -3,6 +3,7 @@ import { AlgorithmList, Validation } from './sorting/algorithms';
 import { generateShuffledArray } from './sorting/util';
 import { CanavasVisualArray } from './sorting/visualarray';
 
+// TODO create an actual user interface
 let canvas: HTMLCanvasElement = $('canvas').get(0) as HTMLCanvasElement;
 
 canvas.width = window.innerWidth * .9;
