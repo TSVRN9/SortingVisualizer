@@ -1,5 +1,4 @@
-import * as Util from './util';
-import { generateShuffledArray } from './util';
+import * as Util from "../util";
 
 export interface VisualArray {
     readonly length: number;
@@ -9,10 +8,10 @@ export interface VisualArray {
     move(from: number, to: number): void;
     /**
      * @param start - inclusive
-     * @param end - exclusive
      */
     subarray(start: number, end: number): VisualArray;
-    compare(first: number, second: number): ComparisonResult;
+    compareIndexes(first: number, second: number): ComparisonResult;
+    compareValues(first: number, second: number): ComparisonResult;
 
     /**
      * @param temporary - whether the highlighting will clear on the next frame. Default value is true
@@ -24,36 +23,26 @@ export interface VisualArray {
     unmark(index: number): VisualArray;
     clearHighlighting(): void;
 
-    drawAndDelay(): Promise<void>;
-    draw(): void;
+    updateAndDelay(): Promise<void>;
+    update(): void;
 }
 
 /**
- * Current Implementation
+ * Implements most of VisualArray
  */
-export class CanavasVisualArray implements VisualArray {
-    readonly context: CanvasRenderingContext2D;
-    readonly stats: Stats = new Stats();
-
+export abstract class DrawnArray implements VisualArray {
     private array: number[];
-    private highlighting: Map<number, HighlightedIndex> = new Map();
-
+    readonly stats: Stats = new Stats();
+    readonly highlighting: Map<number, HighlightedIndex> = new Map();
     /**
      * @param array - to be copied
      */
     constructor(
-        array: number[], 
-        readonly canvas: HTMLCanvasElement, 
-        public delay: number = 10, 
-        public theme: HighlightingTheme = { DEFAULT: 'white', INDEX: 'aqua', COMPARISON: 'green' }
-        ) {
+        array: number[],
+        public delay: number = 10,
+        public theme: HighlightingTheme = { DEFAULT: "white", INDEX: "aqua", COMPARISON: "green" }
+    ) {
         this.array = array.slice();
-
-        let context = canvas.getContext('2d');
-        if (context == null) {
-            throw new Error('Canvas context is null! Is canvas not supported?');
-        }
-        this.context = context;
     }
 
     get length() {
@@ -61,19 +50,15 @@ export class CanavasVisualArray implements VisualArray {
     }
 
     get(index: number) {
-        // update stats
         this.stats.reads++;
-        
         return this.array[index];
     }
 
     swap(first: number, second: number) {
-        [this.array[first], this.array[second]] = [this.array[second], this.array[first]];
-        
-        // update stats
         this.stats.swaps++;
+        [this.array[first], this.array[second]] = [this.array[second], this.array[first]];
     }
-    
+
     move(from: number, to: number) {
         let value = this.array[from];
         this.array.splice(from, 1);
@@ -86,12 +71,14 @@ export class CanavasVisualArray implements VisualArray {
     subarray(start: number, end: number): VisualArray {
         return new SubVisualArray(this, start, end);
     }
-    
-    compare(first: number, second: number) {
-        // update stats
-        this.stats.comparisons++;
 
-        return new ComparisonResult(this.array[first] - this.array[second]);
+    compareIndexes(first: number, second: number) {
+        return this.compareValues(this.get(first), this.get(second));
+    }
+
+    compareValues(first: number, second: number) {
+        this.stats.comparisons++;
+        return new ComparisonResult(first - second);
     }
 
     mark(index: number, highlighting: string, temporary: boolean = true) {
@@ -138,116 +125,12 @@ export class CanavasVisualArray implements VisualArray {
         return this;
     }
 
-    async drawAndDelay(): Promise<void> {
-        this.draw();
+    async updateAndDelay(): Promise<void> {
+        this.update();
         await Util.delay(this.delay);
     }
 
-    // poorly optimized code
-    draw(): void {
-        const self = this;
-
-        const length = this.length;
-        const context = this.context;
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        
-        // create copy
-        const highlighting = new Map(this.highlighting);
-
-        window.requestAnimationFrame(drawAll);
-
-        /**
-         * Should only be called on the first frame or canvas resize
-         */
-        function drawAll() {
-            context.clearRect(0, 0, canvasWidth, canvasHeight);
-    
-            // prevent gaps in the bars by starting the rectangle where the last one ended
-            let x = 0;
-
-            self.array.forEach((value, index) => {
-                const hIndex = highlighting.get(index);
-                
-                // mutiply then divide for extra precision
-                const nextX = Math.round((canvasWidth * (index + 1)) / length);
-                const width = nextX - x;
-                const height = (canvasHeight * value) / length;
-
-                drawRectangle(
-                    x, 0, width, height,
-                    hIndex?.highlighting || self.theme.DEFAULT
-                );
-
-                if (hIndex?.isTemporary) {
-                    self.unmark(index);
-                }
-
-                // update x
-                x = nextX;
-            });
-        }
-
-        /**
-         * for internal use
-         * @param y - starts from the bottom of the canvas
-         */
-        function drawRectangle(x: number, y: number, w: number, h: number, style: string) {
-            context.fillStyle = style;
-            context.fillRect(x, canvasHeight - y - h, w, h);
-        }
-    }
-}
-
-/**
- * For testing algorithms
- */
-export class DummyVisualArray implements VisualArray {
-    private array: number[];
-
-    constructor(size: number) {
-        this.array = generateShuffledArray(size);
-    }
-
-    get length() {
-        return this.array.length
-    }
-
-    get(index: number): number {
-        return this.array[index];
-    }
-    swap(first: number, second: number): void {
-        [this.array[first], this.array[second]] = [this.array[second], this.array[first]];
-    }
-    move(from: number, to: number): void {
-        let value = this.array[from];
-        this.array.splice(from, 1);
-        this.array.splice(to, 0, value);
-    }
-    subarray(start: number, end: number): VisualArray {
-        return new SubVisualArray(this, start, end);
-    }
-    compare(first: number, second: number): ComparisonResult {
-        return new ComparisonResult(this.array[first] - this.array[second]);
-    }
-
-    
-    mark(_index: number, _highlighting: string, _temporary?: boolean): VisualArray {
-        return this;
-    }
-    markIndex(_index: number, _temporary?: boolean): VisualArray {
-        return this;
-    }
-    markComparison(_first: number, _second: number, _temporary?: boolean): VisualArray {
-        return this;
-    }
-    unmark(_index: number): VisualArray {
-        return this;
-    }
-    clearHighlighting() {}
-
-    async drawAndDelay(): Promise<void> {}
-    draw() {}
+    abstract update(): void;
 }
 
 /**
@@ -272,8 +155,11 @@ export class SubVisualArray implements VisualArray {
     subarray(start: number, end: number): VisualArray {
         return new SubVisualArray(this.parent, this.getParentIndex(start), this.getParentIndex(end));
     }
-    compare(first: number, second: number): ComparisonResult {
-        return this.parent.compare(this.getParentIndex(first), this.getParentIndex(second));
+    compareIndexes(first: number, second: number): ComparisonResult {
+        return this.parent.compareIndexes(this.getParentIndex(first), this.getParentIndex(second));
+    }
+    compareValues(first: number, second: number): ComparisonResult {
+        return this.parent.compareValues(first, second);
     }
 
     mark(index: number, highlighting: string, temporary?: boolean): VisualArray {
@@ -292,11 +178,11 @@ export class SubVisualArray implements VisualArray {
         this.parent.clearHighlighting();
     }
 
-    drawAndDelay(): Promise<void> {
-        return this.parent.drawAndDelay();
+    updateAndDelay(): Promise<void> {
+        return this.parent.updateAndDelay();
     }
-    draw() {
-        this.parent.draw();
+    update() {
+        this.parent.update();
     }
 
     private getParentIndex(index: number) {
@@ -337,13 +223,13 @@ export class ComparisonResult {
     get isGreater() {
         return this.result > 0;
     }
-    get isGreaterEqual() {
+    get isGreaterOrEqual() {
         return this.result >= 0;
     }
     get isLess() {
         return this.result < 0;
     }
-    get isLessEqual() {
+    get isLessOrEqual() {
         return this.result <= 0;
     }
     get isEqual() {

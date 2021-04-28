@@ -3,20 +3,20 @@
         "src/"
     ],
     "scripts": {
-        "start": "parcel serve src/index.html",
-        "build": "cross-env NODE_ENV=production parcel build src/index.html --public-url .",
-        "deploy": "gh-pages -d dist"
+        "start": "parcel serve src/index.html --dist-dir dist/dev",
+        "build": "cross-env NODE_ENV=production parcel build src/index.html --public-url . --dist-dir dist/prod",
+        "deploy": "gh-pages -d dist/prod"
+    },
+    "dependencies": {
+        "react": "^17.0.2",
+        "react-dom": "^17.0.2"
     },
     "devDependencies": {
-        "@types/jquery": "^3.5.5",
-        "@types/react": "^17.0.3",
+        "@types/react": "^17.0.2",
+        "@types/react-dom": "^17.0.2",
         "cross-env": "^5.2.0",
         "gh-pages": "^1.2.0",
         "parcel": "^2.0.0-beta.2"
     },
-    "license": "MIT",
-    "dependencies": {
-        "jquery": "^3.6.0",
-        "react": "^17.0.2"
-    }
+    "license": "MIT"
 }

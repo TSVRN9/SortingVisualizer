@@ -3,7 +3,7 @@
 export function generateShuffledArray(size: number) {
     // [1, 2, 3, 4...]
     let arr = generateArray(size);
-    
+
     // fisher yates algorithm
     for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * i);
@@ -26,5 +26,5 @@ export function generateArray(size: number = 100): number[] {
 }
 
 export function delay(ms = 1000): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
