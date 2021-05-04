@@ -1,13 +1,8 @@
-const React = require("react");
-const ReactDOM = require("react-dom");
-import { ReactVisualArray } from "./components/reactvisualarray";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './components/App';
+import registerServiceWorker from './registerServiceWorker';
+import './index.css';
 
-function App() {
-    return (
-        <>
-            <ReactVisualArray></ReactVisualArray>
-        </>
-    );
-}
-
-ReactDOM.render(App(), document.getElementById("root"));
+ReactDOM.render(<App />, document.getElementById('root'));
+registerServiceWorker();

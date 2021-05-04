@@ -1,18 +1,22 @@
-import { VisualArray } from "./arrays/visualarray";
+import VisualArray, { Highlighting } from './VisualArray';
 
 // Exports are at the bottom to avoid forward delarations
 
-export type SortingAlgorithm = (array: VisualArray) => Promise<VisualArray>;
-export type SortingInfo = {
-    description: string;
-    sort: SortingAlgorithm;
-};
+function algorithmInfo(
+    description: string,
+    sort: SortingImplementation
+): AlgorithmInfo {
+    return {
+        description: description,
+        sort: sort,
+    };
+}
 
 /**
  * Removes all newlines from a string
  */
 function oneline(str: string) {
-    return str.replace(/\n/g, "");
+    return str.replace(/\n/g, '');
 }
 
 // ALGORITHMS
@@ -25,19 +29,19 @@ const bubbleSortDescription = oneline(
  The space complexity is O(1)`
 );
 
-const bubbleSort: SortingAlgorithm = async (arr) => {
+const bubbleSort: SortingImplementation = (arr) => {
     for (let i = 0; i < arr.length - 1; i++) {
         const sortedIndex = arr.length - i - 1;
-        arr.markIndex(sortedIndex, false);
+        arr.mark(sortedIndex, Highlighting.INDEX, true);
 
         let swapped = false;
 
         for (let j = 0; j < sortedIndex; j++) {
-            await arr.markComparison(j, j + 1).updateAndDelay();
             if (arr.compareIndexes(j, j + 1).isGreater) {
                 arr.swap(j, j + 1);
                 swapped = true;
             }
+            arr.takeSnapshot();
         }
 
         arr.unmark(sortedIndex);
@@ -56,20 +60,17 @@ const selectionSortDescription = oneline(
  The time complexity is O(n^2) and the space complexity is O(1).`
 );
 
-const selectionSort: SortingAlgorithm = async (arr) => {
+const selectionSort: SortingImplementation = (arr) => {
     for (let i = 0; i < arr.length - 1; i++) {
         let minIndex = i;
 
-        arr.markIndex(i, false);
-
         for (let j = i + 1; j < arr.length; j++) {
-            await arr.markComparison(minIndex, j).updateAndDelay();
+            arr.mark(i, Highlighting.INDEX);
             if (arr.compareIndexes(j, minIndex).isLess) {
                 minIndex = j;
             }
+            arr.takeSnapshot();
         }
-
-        await arr.markIndex(minIndex).updateAndDelay();
         arr.swap(i, minIndex);
 
         arr.unmark(i);
@@ -84,13 +85,14 @@ const insertionSortDescription: string = oneline(
  Time complexity is O(n^2) and space complexity is O(1)`
 );
 
-const insertionSort: SortingAlgorithm = async (arr) => {
+const insertionSort: SortingImplementation = (arr) => {
     for (let i = 1; i < arr.length; i++) {
         for (let j = i - 1; j >= 0; j--) {
-            await arr.markComparison(j, j + 1).updateAndDelay();
-            if (arr.compareIndexes(j, j + 1).isLess) {
+            if (arr.compareIndexes(j, j + 1).isGreater) {
                 arr.swap(j, j + 1);
+                arr.takeSnapshot();
             } else {
+                arr.takeSnapshot();
                 break;
             }
         }
@@ -100,27 +102,28 @@ const insertionSort: SortingAlgorithm = async (arr) => {
 
 const quickSortDescription: string = oneline(
     `Quick sort is a commonly used algorithm with a worst case runtime complexity of n^2.
- Although on average, it has a time complexity of n log n. `
+ Although on average, it has a time complexity of n log n.
+ Like the name suggests, quick sort is pretty quick.`
 );
 
-const quickSort: SortingAlgorithm = async (arr) => {
-    await sort();
+const quickSort: SortingImplementation = (arr) => {
+    sort();
     return arr;
 
     /**
      * @param min - inclusive
      * @param max - inclusive
      */
-    async function sort(min = 0, max = arr.length - 1): Promise<void> {
+    function sort(min = 0, max = arr.length - 1): void {
         if (arr.compareValues(min, max).isGreaterOrEqual) {
             return;
         }
 
-        const partitionIndex = await partition(min, max);
+        const partitionIndex = partition(min, max);
 
         // sort left and right
-        await sort(min, partitionIndex - 1);
-        await sort(partitionIndex + 1, max);
+        sort(min, partitionIndex - 1);
+        sort(partitionIndex + 1, max);
     }
 
     /**
@@ -128,12 +131,12 @@ const quickSort: SortingAlgorithm = async (arr) => {
      * @param max - inclusive
      * @returns index of pivot
      */
-    async function partition(min: number, max: number): Promise<number> {
+    function partition(min: number, max: number): number {
         // const pivotIndex = max;
         let i = min - 1; // immediately incremented
 
         for (let j = min; j < max; j++) {
-            await arr.markComparison(j, max).updateAndDelay();
+            arr.takeSnapshot();
             if (arr.compareIndexes(j, max).isLessOrEqual) {
                 i++;
                 arr.swap(i, j);
@@ -147,52 +150,32 @@ const quickSort: SortingAlgorithm = async (arr) => {
     }
 };
 
-// ! Broken
-/**
- * @param min - inclusive
- * @param max - inclusive
- * @returns index that element should be inserted in
- */
-async function binarySearch(
-    array: VisualArray,
-    index: number,
-    min: number = 0,
-    max: number = array.length
-): Promise<number> {
-    array.markIndex(min).markIndex(max);
+// class to allow use of webworker
+export class AlgorithmList {
+    readonly list: Record<string, AlgorithmInfo> = {
+        'Bubble Sort': algorithmInfo(bubbleSortDescription, bubbleSort),
+        'Selection Sort': algorithmInfo(
+            selectionSortDescription,
+            selectionSort
+        ),
+        'Insertion Sort': algorithmInfo(
+            insertionSortDescription,
+            insertionSort
+        ),
+        'Quick Sort': algorithmInfo(quickSortDescription, quickSort),
+    };
 
-    if (min >= max) {
-        await array.markComparison(index, min).updateAndDelay();
-        return array.compareIndexes(index, min).isLess ? min : min + 1;
+    get names() {
+        return Object.keys(this.list);
     }
 
-    const mid = Math.round((min + max) / 2);
-    const comp = array.compareIndexes(index, mid);
-    await array.markComparison(index, mid).updateAndDelay();
-
-    if (comp.isLess) {
-        return binarySearch(array, index, min + 1, max);
-    } else {
-        // comp.isGreater (should be no duplicates in array)
-        return binarySearch(array, index, min, max + 1);
+    get length() {
+        return this.names.length;
     }
 }
 
-export const AlgorithmList: { [name: string]: SortingInfo } = {
-    "Bubble Sort": {
-        description: bubbleSortDescription,
-        sort: bubbleSort,
-    },
-    "Selection Sort": {
-        description: selectionSortDescription,
-        sort: selectionSort,
-    },
-    "Insertion Sort": {
-        description: insertionSortDescription,
-        sort: insertionSort,
-    },
-    "Quick Sort": {
-        description: quickSortDescription,
-        sort: quickSort,
-    },
+export type SortingImplementation = (array: VisualArray) => VisualArray;
+export type AlgorithmInfo = {
+    description: string;
+    sort: SortingImplementation;
 };

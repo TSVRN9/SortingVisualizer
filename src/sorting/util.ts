@@ -1,5 +1,7 @@
 //  functions that just make life easier :)
 
+import { ArraySnapshot } from './VisualArray';
+
 export function generateShuffledArray(size: number) {
     // [1, 2, 3, 4...]
     let arr = generateArray(size);
@@ -27,4 +29,8 @@ export function generateArray(size: number = 100): number[] {
 
 export function delay(ms = 1000): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function generateRandomSnapshot(size: number = 100) {
+    return new ArraySnapshot(generateShuffledArray(size), new Map());
 }

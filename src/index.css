@@ -1,0 +1,33 @@
+#root {
+    max-width: 1000px;
+    margin: auto;
+    font-family: monospace;
+}
+
+button {
+    padding: 15px 20px;
+    margin: 10px;
+}
+
+.App {
+    width: 75%;
+}
+
+.Visualizer-number {
+    margin-top: auto;
+}
+
+.centered-vertical {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.centered-horizontal {
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+}
+.inline {
+    display: inline-block;
+}
