@@ -36,43 +36,39 @@ export default class App extends React.Component<{}, AppState> {
             delay: defaultDelay,
         };
 
-        this.worker = new Worker(new URL('../worker.ts', import.meta.url));
+        this.worker = getNewWorker();
         this.promptWorker([...snapshot.array]);
     }
 
     render() {
-        // if algorithm is running
-        if (this.state.snapshots.length == 0) {
-            return (
-                <div className="App centered-vertical">
-                    <h1>Loading...</h1>
-                </div>
-            );
-        } else {
-            return (
-                <div className="App centered-vertical">
-                    <Selector
-                        name={this.getCurrentAlgorithmName()}
-                        info={this.getCurrentAlgorithmInfo()}
-                        onChange={this.selectorHandler}
-                    ></Selector>
-                    <Visualizer
-                        snapshot={this.getCurrentSnapshot()}
-                        height={window.innerHeight * 0.6}
-                        width={Math.min(window.innerWidth, 700)}
-                    />
-                    <Playback
-                        onChange={this.playbackHandler}
-                        progress={this.state.currentSnapshot}
-                        maxProgress={this.state.snapshots.length}
-                    />
-                </div>
-            );
-        }
+        return (
+            <div className="App centered-vertical">
+                <Selector
+                    onUpdate={this.selectorHandler}
+                ></Selector>
+                <Visualizer
+                    snapshot={this.getCurrentSnapshot()}
+                    height={window.innerHeight * 0.6}
+                    width={Math.min(window.innerWidth, 700)}
+                />
+                <Playback
+                    onUpdate={this.playbackHandler}
+                    progress={this.state.currentSnapshot + 1}
+                    maxProgress={this.state.snapshots.length}
+                />
+            </div>
+        );
     }
 
-    // loop through states and reset array
-    selectorHandler = (change: -1 | 1) => {
+    // rip 6 mb of memory
+    workerHandler = (event: MessageEvent<any>) => {
+        this.setState((prevState) => ({
+            snapshots: prevState.snapshots.concat(event.data),
+        }));
+    };
+
+
+    selectorHandler = (newAlgorithm: ) => {
         this.setState((prevState) => {
             const newSelection = prevState.currentAlgorithm + change;
 
@@ -85,44 +81,16 @@ export default class App extends React.Component<{}, AppState> {
                         ? 0
                         : newSelection,
             };
-        }, this.runAlgorithm);
+        }, this.runNewAlgorithm);
     };
 
-    // rip 6 mb of memory
-    snapshotHandler = (event: MessageEvent<any>) => {
-        this.setState((prevState) => ({
-            snapshots: prevState.snapshots.concat(event.data),
-        }));
+    playbackHandler = (newProgress: number) => {
+        this.setState({
+            currentSnapshot: newProgress
+        });
     };
 
-    startPlayback = (change: 1 | -1) => {
-        if (this.playbackTimer != undefined) {
-            this.stopPlayback();
-        }
-
-        const changeFrame =
-            change == 1 ? this.incrementFrame : this.decrementFrame;
-
-        const loop = () => {
-            this.playbackTimer = setTimeout(() => {
-                if (!changeFrame()) {
-                    this.stopPlayback();
-                } else {
-                    loop();
-                }
-            }, this.state.delay);
-        };
-
-        loop();
-    };
-
-    stopPlayback = () => {
-        // typescript moment
-        clearTimeout(this.playbackTimer as any);
-        this.playbackTimer = undefined;
-    };
-
-    runAlgorithm = () => {
+    runNewAlgorithm = () => {
         if (this.algorithmTimer) {
             clearTimeout(this.algorithmTimer);
         }
@@ -135,16 +103,14 @@ export default class App extends React.Component<{}, AppState> {
                 currentSnapshot: 0,
             },
             () => {
-                this.worker = new Worker(
-                    new URL('../worker.ts', import.meta.url)
-                );
+                this.worker = getNewWorker();
                 this.promptWorker([...randomSnapshot.array]);
             }
         );
     };
 
     promptWorker = (array: number[]) => {
-        this.worker.onmessage = this.snapshotHandler;
+        this.worker.onmessage = this.workerHandler;
 
         const data = {
             name: this.getCurrentAlgorithmName(),
@@ -152,27 +118,6 @@ export default class App extends React.Component<{}, AppState> {
         };
 
         this.worker.postMessage(data);
-    };
-
-    // stop and start timers
-    playbackHandler = (type: PlaybackButtonType) => {
-        switch (type as string) {
-            case 'PLAY':
-                this.startPlayback(1);
-                break;
-            case 'REWIND':
-                this.startPlayback(-1);
-                break;
-            case 'PAUSE':
-                this.stopPlayback();
-                break;
-            case 'NEXT':
-                this.incrementFrame();
-                break;
-            case 'PREVIOUS':
-                this.decrementFrame();
-                break;
-        }
     };
 
     getCurrentAlgorithmName = (): string => {
@@ -194,37 +139,11 @@ export default class App extends React.Component<{}, AppState> {
                 currentSnapshot: 0,
                 arraySize: newSize,
             },
-            this.runAlgorithm
+            this.runNewAlgorithm
         );
     };
+}
 
-    /**
-     * Safely change frames
-     * @param change - increment or decrement
-     * @returns whether or not currentSnapshot was changed
-     */
-    incrementFrame = (): boolean => {
-        const safeToIncrement =
-            this.state.currentSnapshot + 1 < this.state.snapshots.length;
-
-        if (safeToIncrement) {
-            this.setState((prevState) => ({
-                currentSnapshot: prevState.currentSnapshot + 1,
-            }));
-        }
-
-        return safeToIncrement;
-    };
-
-    decrementFrame = (): boolean => {
-        const safeToDecrement = this.state.currentSnapshot - 1 >= 0;
-
-        if (safeToDecrement) {
-            this.setState((prevState) => ({
-                currentSnapshot: prevState.currentSnapshot - 1,
-            }));
-        }
-
-        return safeToDecrement;
-    };
+function getNewWorker() {
+    return new Worker(new URL('../worker.ts', import.meta.url));
 }

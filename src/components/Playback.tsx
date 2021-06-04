@@ -1,19 +1,17 @@
 import React from 'react';
 
-export interface PlaybackProps extends PlaybackControlProps {
+export interface PlaybackProps {
+    // The main app can just update its state from the updated progress bar
+    onUpdate: (newProgress: number) => void;
     progress: number;
     maxProgress: number;
 }
 
-export enum PlaybackButtonType {
-    PREVIOUS = '<',
-    REWIND = '⏴︎',
-    PAUSE = '⏹︎',
-    PLAY = '⏵︎',
-    NEXT = '>',
+export interface PlaybackState {
+    disabledButtons: PlaybackButtonType[];
 }
 
-export default class Playback extends React.Component<PlaybackProps> {
+export default class Playback extends React.Component<PlaybackProps, PlaybackState> {
     constructor(props: PlaybackProps) {
         super(props);
     }
@@ -22,12 +20,12 @@ export default class Playback extends React.Component<PlaybackProps> {
         return (
             <div className="Playback centered-vertical">
                 <PlaybackControls
-                    onChange={this.props.onChange}
-                    disabledButton={this.props.disabledButton}
+                    clickHandler={this.clickHandler}
+                    disabledButtons={this.state.disabledButtons}
                 ></PlaybackControls>
                 <div className="Playback-Progress centered-horizontal">
                     <p>
-                        <b>{this.props.progress + 1}</b>
+                        <b>{this.props.progress}</b>
                     </p>
                     <p>/</p>
                     <p>{this.props.maxProgress}</p>
@@ -35,11 +33,15 @@ export default class Playback extends React.Component<PlaybackProps> {
             </div>
         );
     }
+
+    clickHandler = () => {
+
+    }
 }
 
 export interface PlaybackControlProps {
-    onChange: (type: PlaybackButtonType) => void;
-    disabledButton?: PlaybackButtonType;
+    clickHandler: (type: PlaybackButtonType) => void;
+    disabledButtons?: PlaybackButtonType[];
 }
 
 function PlaybackControls(props: PlaybackControlProps) {
@@ -48,9 +50,9 @@ function PlaybackControls(props: PlaybackControlProps) {
             {Object.keys(PlaybackButtonType).map((key, index) => {
                 return (
                     <PlaybackButton
-                        onChange={props.onChange}
+                        onChange={props.clickHandler}
                         type={key as PlaybackButtonType}
-                        disabled={props.disabledButton === key}
+                        disabled={props.disabledButtons?.includes(key as PlaybackButtonType)}
                         key={index}
                     />
                 );
@@ -76,4 +78,14 @@ function PlaybackButton(props: {
             {display}
         </button>
     );
+}
+
+export enum PlaybackButtonType {
+    FIRST = '⏮',
+    PREVIOUS = '<',
+    REWIND = '◀',
+    PAUSE = '⏹',
+    PLAY = '▶',
+    NEXT = '>',
+    LAST = '⏭'
 }

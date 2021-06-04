@@ -176,6 +176,7 @@ export class AlgorithmList {
 
 export type SortingImplementation = (array: VisualArray) => VisualArray;
 export type AlgorithmInfo = {
+    name: string;
     description: string;
     sort: SortingImplementation;
 };

@@ -2,12 +2,22 @@ import React from 'react';
 import { AlgorithmInfo } from '../sorting/AlgorithmList';
 
 interface SelectorProps {
-    name: string;
-    info: AlgorithmInfo;
-    onChange: (change: 1 | -1) => void;
+    onUpdate: (newAlgorithm: number) => void;
 }
 
-export default class Selector extends React.Component<SelectorProps> {
+interface SelectorState {
+    currentAlgorithm: number;
+}
+
+export default class Selector extends React.Component<SelectorProps, SelectorState> {
+    constructor(props: SelectorProps) {
+        super(props);
+
+        this.state = {
+            currentAlgorithm: 
+        }
+    }
+
     render() {
         return (
             <div className="Selector">
@@ -23,7 +33,9 @@ export default class Selector extends React.Component<SelectorProps> {
         );
     }
 
-    clickHandler(change: 1 | -1) {
-        this.props.onChange(change);
+    clickHandler(change: number) {
+        const newAlgorithm = 
+
+        this.props.onUpdate(newAlgorithm);
     }
 }
